@@ -24,8 +24,10 @@ python3 -m http.server 8000
 
 ## Deploying
 
-Hosted on [GitHub Pages](https://pages.github.com/) straight from this repository.
-If you fork it: **Settings → Pages → Deploy from a branch → branch: `main`, folder: `/`**.
+Hosted on [GitHub Pages](https://pages.github.com/) via the GitHub Actions
+workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) —
+every push to `main` deploys automatically. If you fork it, just push and the
+site will deploy to `https://<you>.github.io/link-to-qr/`.
 
 ## Credits
 
