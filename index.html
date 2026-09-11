@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Link to QR — turn any URL into a QR code</title>
+<meta name="description" content="Paste a link, get a QR code. Free, instant and private — QR codes are generated entirely in your browser.">
+<meta property="og:title" content="Link to QR">
+<meta property="og:description" content="Paste a link, get a QR code. Free, instant and private.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%236366f1'/%3E%3Cpath fill='%23fff' d='M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5z'/%3E%3Crect x='14.5' y='14.5' width='3' height='3' fill='%23fff'/%3E%3Crect x='18' y='18' width='2' height='2' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #141821;
+    --border: #262c3a;
+    --text: #e8eaf0;
+    --muted: #9aa3b2;
+    --accent: #6366f1;
+    --accent2: #8b5cf6;
+    --danger: #f87171;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(1100px 700px at 85% -10%, #1c2333 0%, rgba(11,13,18,0) 60%);
+    background-repeat: no-repeat;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 52px 20px 40px;
+    flex: 1;
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-size: clamp(1.9rem, 4.5vw, 2.7rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  h1 .arrow {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding: 0 .08em;
+  }
+  .sub { margin: 0 0 34px; color: var(--muted); font-size: 1.05rem; max-width: 46ch; }
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: 1fr; }
+    .qr-side { order: -1; }
+  }
+  label {
+    display: block;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 8px;
+  }
+  #url {
+    width: 100%;
+    padding: 16px 18px;
+    font-size: 1.05rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  #url::placeholder { color: #5b6472; }
+  #url:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, .18);
+  }
+  .status {
+    min-height: 22px;
+    margin: 10px 2px 0;
+    font-size: .92rem;
+    color: var(--muted);
+  }
+  .status.error { color: var(--danger); }
+  .row {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .field { display: flex; flex-direction: column; }
+  select {
+    padding: 12px 14px;
+    font-size: .95rem;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    outline: none;
+    cursor: pointer;
+  }
+  select:focus { border-color: var(--accent); }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    font-size: .98rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform .06s, filter .15s, border-color .15s;
+  }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.primary {
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+  }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.1); }
+  .btn.ghost:hover:not(:disabled) { border-color: var(--accent); }
+  .btn svg { flex: none; }
+  .qr-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .qr-card {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+  }
+  #qr-canvas {
+    display: block;
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    border-radius: 4px;
+  }
+  #qr-empty {
+    width: 100%;
+    max-width: 280px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    border: 2px dashed #c8cdd8;
+    border-radius: 10px;
+    color: #8a94a6;
+    font-size: .95rem;
+  }
+  .encoded {
+    margin: 0;
+    font-size: .84rem;
+    color: var(--muted);
+    text-align: center;
+    word-break: break-all;
+    max-width: 320px;
+  }
+  footer {
+    padding: 18px 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: .84rem;
+    color: var(--muted);
+  }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Link <span class="arrow">&#8594;</span> QR</h1>
+    <p class="sub">Paste a link, get a scannable QR code. Free, instant and fully private &mdash; everything runs in your browser.</p>
+  </header>
+
+  <div class="grid">
+    <section>
+      <label for="url">Link</label>
+      <input id="url" type="text" inputmode="url" autocomplete="off" spellcheck="false"
+             placeholder="example.com or https://&hellip;">
+      <p id="status" class="status" aria-live="polite"></p>
+
+      <div class="row">
+        <div class="field">
+          <label for="size">PNG size</label>
+          <select id="size">
+            <option value="512">512 &times; 512</option>
+            <option value="1024" selected>1024 &times; 1024</option>
+            <option value="2048">2048 &times; 2048</option>
+            <option value="4096">4096 &times; 4096</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="dl-png" class="btn primary" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Download PNG</span>
+        </button>
+        <button id="dl-svg" class="btn ghost" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Download SVG</span>
+        </button>
+        <button id="copy" class="btn ghost" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span>Copy image</span>
+        </button>
+      </div>
+    </section>
+
+    <aside class="qr-side">
+      <div class="qr-card">
+        <canvas id="qr-canvas" role="img" aria-label="QR code preview" hidden></canvas>
+        <div id="qr-empty">Your QR code<br>appears here</div>
+      </div>
+      <p id="encoded" class="encoded"></p>
+    </aside>
+  </div>
+</main>
+
+<footer>
+  Runs 100% in your browser &mdash; your links never leave your device &middot;
+  QR encoding: <a href="https://github.com/kazuhikoarase/qrcode-generator" rel="noopener">qrcode-generator</a> (MIT) &middot;
+  <a href="https://github.com/nangti/link-to-qr" rel="noopener">Source on GitHub</a>
+</footer>
+
+<script src="vendor/qrcode-generator/qrcode.js"></script>
+<script src="vendor/qrcode-generator/qrcode_UTF8.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var MARGIN = 4; // quiet zone, in modules
+
+  var input    = document.getElementById('url');
+  var canvas   = document.getElementById('qr-canvas');
+  var emptyEl  = document.getElementById('qr-empty');
+  var statusEl = document.getElementById('status');
+  var encodedEl= document.getElementById('encoded');
+  var sizeSel  = document.getElementById('size');
+  var btnPng   = document.getElementById('dl-png');
+  var btnSvg   = document.getElementById('dl-svg');
+  var btnCopy  = document.getElementById('copy');
+
+  var current = null; // { qr, text } last successfully generated
+
+  var HAS_SCHEME = /^(https?|ftp|mailto|tel|sms|geo|bitcoin|magnet|matrix|news|sip|ssh|xmpp):/i;
+
+  function normalize(raw) {
+    var t = String(raw || '').trim();
+    if (!t) return '';
+    if (!HAS_SCHEME.test(t)) t = 'https://' + t;
+    return t;
+  }
+
+  function drawQR(qr, target, px) {
+    var count = qr.getModuleCount();
+    var total = count + MARGIN * 2;
+    var cell = Math.max(1, Math.floor(px / total));
+    var dim = cell * total;
+    target.width = dim;
+    target.height = dim;
+    var ctx = target.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, dim, dim);
+    ctx.fillStyle = '#000000';
+    for (var r = 0; r < count; r++) {
+      for (var c = 0; c < count; c++) {
+        if (qr.isDark(r, c)) {
+          ctx.fillRect((c + MARGIN) * cell, (r + MARGIN) * cell, cell, cell);
+        }
+      }
+    }
+    return dim;
+  }
+
+  function svgString(qr) {
+    var count = qr.getModuleCount();
+    var cell = 10;
+    var dim = (count + MARGIN * 2) * cell;
+    var d = '';
+    for (var r = 0; r < count; r++) {
+      for (var c = 0; c < count; c++) {
+        if (qr.isDark(r, c)) {
+          var x = (c + MARGIN) * cell;
+          var y = (r + MARGIN) * cell;
+          d += 'M' + x + ' ' + y + 'h' + cell + 'v' + cell + 'h-' + cell + 'z';
+        }
+      }
+    }
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<svg xmlns="http://www.w3.org/2000/svg" width="' + dim + '" height="' + dim +
+      '" viewBox="0 0 ' + dim + ' ' + dim + '" shape-rendering="crispEdges">' +
+      '<rect width="' + dim + '" height="' + dim + '" fill="#ffffff"/>' +
+      '<path d="' + d + '" fill="#000000"/></svg>';
+  }
+
+  function fileBase(text) {
+    try {
+      var host = new URL(text).hostname.replace(/^www\./, '');
+      var safe = host.replace(/[^a-z0-9.-]/gi, '_').slice(0, 40);
+      if (safe) return 'qr-' + safe;
+    } catch (e) { /* fall through */ }
+    return 'qr-code';
+  }
+
+  function download(blob, name) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg || '';
+    statusEl.classList.toggle('error', !!isError);
+  }
+
+  function setButtons(enabled) {
+    btnPng.disabled = !enabled;
+    btnSvg.disabled = !enabled;
+    btnCopy.disabled = !enabled;
+  }
+
+  function syncUrl(text) {
+    try {
+      var qs = text ? '?u=' + encodeURIComponent(text) : '';
+      history.replaceState(null, '', location.pathname + qs + location.hash);
+    } catch (e) { /* ignore (e.g. file:// quirks) */ }
+  }
+
+  function generate() {
+    var text = normalize(input.value);
+    if (!text) {
+      current = null;
+      canvas.hidden = true;
+      emptyEl.hidden = false;
+      encodedEl.textContent = '';
+      setButtons(false);
+      setStatus('');
+      syncUrl('');
+      return;
+    }
+    try {
+      var qr = qrcode(0, 'M'); // type auto, medium error correction
+      qr.addData(text);
+      qr.make();
+      current = { qr: qr, text: text };
+      emptyEl.hidden = true;
+      canvas.hidden = false;
+      var px = Math.round((canvas.clientWidth || 280) * (window.devicePixelRatio || 1));
+      drawQR(qr, canvas, Math.max(px, 300));
+      encodedEl.textContent = 'Encodes: ' + text;
+      setStatus('');
+      setButtons(true);
+      syncUrl(text);
+    } catch (e) {
+      current = null;
+      canvas.hidden = true;
+      emptyEl.hidden = false;
+      encodedEl.textContent = '';
+      setButtons(false);
+      setStatus('This link is too long for a QR code — try a shorter URL.', true);
+      syncUrl('');
+    }
+  }
+
+  function flash(btn, msg) {
+    var span = btn.querySelector('span');
+    if (!span) return;
+    if (!btn.dataset.label) btn.dataset.label = span.textContent;
+    span.textContent = msg;
+    setTimeout(function () { span.textContent = btn.dataset.label; }, 1400);
+  }
+
+  var debounce = null;
+  input.addEventListener('input', function () {
+    clearTimeout(debounce);
+    debounce = setTimeout(generate, 120);
+  });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      clearTimeout(debounce);
+      generate();
+    }
+  });
+
+  btnPng.addEventListener('click', function () {
+    if (!current) return;
+    var off = document.createElement('canvas');
+    drawQR(current.qr, off, parseInt(sizeSel.value, 10) || 1024);
+    off.toBlob(function (blob) {
+      if (blob) download(blob, fileBase(current.text) + '.png');
+    }, 'image/png');
+  });
+
+  btnSvg.addEventListener('click', function () {
+    if (!current) return;
+    download(new Blob([svgString(current.qr)], { type: 'image/svg+xml' }),
+      fileBase(current.text) + '.svg');
+  });
+
+  btnCopy.addEventListener('click', function () {
+    if (!current) return;
+    if (typeof ClipboardItem === 'undefined' || !navigator.clipboard || !navigator.clipboard.write) {
+      setStatus('Copying images is not supported in this browser — use Download instead.', true);
+      return;
+    }
+    canvas.toBlob(function (blob) {
+      if (!blob) return;
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(
+        function () { flash(btnCopy, 'Copied!'); },
+        function () { setStatus('Could not copy — use Download instead.', true); }
+      );
+    });
+  });
+
+  // Pre-fill from ?u=<link> so a QR can be shared ready-made.
+  var preset = null;
+  try { preset = new URLSearchParams(location.search).get('u'); } catch (e) { /* noop */ }
+  if (preset) input.value = preset;
+  generate();
+  if (!preset) input.focus();
+  input.select();
+
+  // Exposed for automated tests / console tinkering.
+  window.__linkqr = {
+    generate: generate,
+    normalize: normalize,
+    drawQR: drawQR,
+    svgString: svgString,
+    fileBase: fileBase,
+    get current() { return current; }
+  };
+})();
+</script>
+</body>
+</html>
